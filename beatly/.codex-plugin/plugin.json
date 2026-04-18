@@ -1,6 +1,6 @@
 {
   "name": "beatly",
-  "version": "0.6.4",
+  "version": "0.7.0",
   "description": "A procedurally generated soundtrack, composed live while your coding agent works. Every note is synthesized in real time and scored to what the agent is doing right now. Requires system-wide SuperCollider.",
   "author": {
     "name": "Beatly",
