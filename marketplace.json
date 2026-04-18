@@ -1,0 +1,20 @@
+{
+  "name": "beatly",
+  "interface": {
+    "displayName": "Beatly"
+  },
+  "plugins": [
+    {
+      "name": "beatly",
+      "source": {
+        "source": "local",
+        "path": "./beatly"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
