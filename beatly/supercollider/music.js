@@ -21,6 +21,11 @@ export function makeRng(seed) {
 }
 
 // ---------- music theory ----------
+// Only modes that produce consonant tertian chords via chordTones(). Exotic
+// scales (wholeTone, doubleHarmonic, blues, harmonicMinor, pure pentatonic
+// minor) were removed because stacking thirds on them yields broken or
+// dissonant voicings. Pentatonic scales are kept but callers must use the
+// 'triad' chord extension (quartal/no-dissonance) — see notes below.
 const SCALES = {
   ionian:           [0,2,4,5,7,9,11],
   dorian:           [0,2,3,5,7,9,10],
@@ -28,14 +33,8 @@ const SCALES = {
   lydian:           [0,2,4,6,7,9,11],
   mixolydian:       [0,2,4,5,7,9,10],
   aeolian:          [0,2,3,5,7,8,10],
-  pentMinor:        [0,3,5,7,10],
-  majorPentatonic:  [0,2,4,7,9],
-  minorPentatonic:  [0,3,5,7,10],
-  harmonicMinor:    [0,2,3,5,7,8,11],
   melodicMinor:     [0,2,3,5,7,9,11],
-  doubleHarmonic:   [0,1,4,5,7,8,11],
-  wholeTone:        [0,2,4,6,8,10],
-  blues:            [0,3,5,6,7,10],
+  majorPentatonic:  [0,2,4,7,9],
 };
 
 const midiToHz = (m) => 440 * Math.pow(2, (m - 69) / 12);
@@ -55,6 +54,19 @@ function chordTones(tonic, scale, deg, ext = 'triad') {
                 : ext === 'seventh'    ? [0, 2, 4, 6]
                 :                        [0, 2, 4];
   return offsets.map((d) => degreeToMidi(tonic, scale, deg + d));
+}
+
+// Drop any note that forms a minor 2nd (1 semitone) or minor 9th (13 st) with
+// a LOWER chord tone. This automatically prunes "avoid notes" — e.g. the P4
+// stacked on a major triad (the classic 11-vs-3 clash), the b9 on a thirteenth
+// voicing, etc. Applied to every chord before voice-leading the pad.
+function pruneAvoidNotes(chord) {
+  const sorted = [...chord].sort((a, b) => a - b);
+  const kept = [];
+  for (const n of sorted) {
+    if (!kept.some((k) => n - k === 1 || n - k === 13)) kept.push(n);
+  }
+  return kept;
 }
 
 function voiceLead(chord, prevTop, lo = 60, hi = 84) {
@@ -374,9 +386,10 @@ const BASES = {
   },
 
   rainyPiano: {
+    // Pentatonic + triad → quartal/open voicings, zero dissonance.
     tonic: 65, scale: 'majorPentatonic', bpm: 68,
     progressions: [[1,3,6,4],[1,5,6,3],[1,2,6,5]],
-    chordExt: 'ninth', barsPerChord: 4,
+    chordExt: 'triad', barsPerChord: 4,
     bassStyle: 'none',
     leadDensity: 0.1,
     shimmerRate: 2,
@@ -422,7 +435,7 @@ const VARIANTS = {
     warmth:    { chordExt: 'ninth', pad: { warmth: 0.95, amp: 0.08 } },
     rain:      { shimmerRate: 6, delay: { beats: 0.5, fb: 0.55, mix: 0.5 } },
     cloudland: { bpm: 58, barsPerChord: 8 },
-    hymn:      { scale: 'majorPentatonic', tonic: 67, chordExt: 'seventh' },
+    hymn:      { scale: 'majorPentatonic', tonic: 67, chordExt: 'triad' },
     mist:      { tonic: 62, scale: 'dorian', pad: { warmth: 0.82 } },
   },
 
@@ -445,7 +458,7 @@ const VARIANTS = {
     classic: {},
     night:   { tonic: 53, bpm: 72, pad: { warmth: 0.85 } },
     crate:   { swing: 0.22, pad: { warmth: 0.8 }, reverb: { damp: 0.6 } },
-    sunday:  { scale: 'majorPentatonic', tonic: 60, chordExt: 'ninth' },
+    sunday:  { scale: 'majorPentatonic', tonic: 60, chordExt: 'triad' },
     jazzy:   { chordExt: 'ninth', swing: 0.2, scale: 'dorian' },
     tape:    { bpm: 74, pad: { warmth: 0.88 }, delay: { fb: 0.55, mix: 0.5 } },
   },
@@ -455,7 +468,7 @@ const VARIANTS = {
     ballad:   { bpm: 72, chordExt: 'ninth', leadDensity: 0.35 },
     uptempo:  { bpm: 132, leadDensity: 0.6 },
     rhodes:   { pad: { warmth: 0.88 }, chordExt: 'eleventh' },
-    blue:     { scale: 'blues', chordExt: 'seventh' },
+    blue:     { scale: 'aeolian', chordExt: 'seventh', tonic: 48 },
     afterhours: { tonic: 46, bpm: 84, pad: { warmth: 0.82 } },
   },
 
@@ -510,7 +523,7 @@ const VARIANTS = {
     classic:   {},
     euphoric:  { bpm: 128, chordExt: 'ninth', leadDensity: 0.6 },
     anthem:    { leadDensity: 0.7, pad: { warmth: 0.7 } },
-    gospel:    { scale: 'majorPentatonic', chordExt: 'seventh' },
+    gospel:    { scale: 'majorPentatonic', chordExt: 'triad' },
     dawn:      { bpm: 108, pad: { warmth: 0.75 } },
     stadium:   { bpm: 126, chordExt: 'seventh', reverb: { mix: 0.8 } },
   },
@@ -539,7 +552,7 @@ const VARIANTS = {
     buttery:  { bpm: 80, chordExt: 'thirteenth', pad: { warmth: 0.88 } },
     jazzy:    { chordExt: 'ninth', scale: 'dorian' },
     midnight: { tonic: 53, pad: { warmth: 0.8 } },
-    sunday:   { scale: 'majorPentatonic', tonic: 60, bpm: 86 },
+    sunday:   { scale: 'majorPentatonic', tonic: 60, bpm: 86, chordExt: 'triad' },
   },
 
   cityPop: {
@@ -563,7 +576,7 @@ const VARIANTS = {
   chillHouse: {
     classic: {},
     deep:    { tonic: 53, scale: 'dorian', chordExt: 'ninth', pad: { warmth: 0.8 } },
-    beach:   { scale: 'majorPentatonic', tonic: 62, pad: { warmth: 0.85 } },
+    beach:   { scale: 'majorPentatonic', tonic: 62, chordExt: 'triad', pad: { warmth: 0.85 } },
     sunset:  { bpm: 110 },
     rooftop: { bpm: 124, leadDensity: 0.4 },
     balearic:{ bpm: 114, chordExt: 'ninth', pad: { warmth: 0.82 } },
@@ -571,8 +584,9 @@ const VARIANTS = {
 
   rainyPiano: {
     classic:  {},
-    midnight: { tonic: 58, scale: 'aeolian', pad: { warmth: 0.82 } },
-    morning:  { tonic: 67, scale: 'lydian' },
+    // These variants leave pentatonic land, so they get richer extensions back.
+    midnight: { tonic: 58, scale: 'aeolian', chordExt: 'ninth', pad: { warmth: 0.82 } },
+    morning:  { tonic: 67, scale: 'lydian', chordExt: 'ninth' },
     moss:     { bpm: 56 },
     stormy:   { shimmerRate: 5, reverb: { mix: 1.5 } },
     hymn:     { scale: 'ionian', chordExt: 'seventh' },
@@ -580,7 +594,7 @@ const VARIANTS = {
 
   sunsetGroove: {
     classic:    {},
-    beach:      { tonic: 58, scale: 'majorPentatonic', pad: { warmth: 0.85 } },
+    beach:      { tonic: 58, scale: 'majorPentatonic', chordExt: 'triad', pad: { warmth: 0.85 } },
     dusk:       { bpm: 90, pad: { warmth: 0.82 } },
     golden:     { bpm: 108, chordExt: 'thirteenth' },
     saltwater:  { bpm: 94, scale: 'dorian' },
@@ -650,7 +664,12 @@ export function makeGenerator(profileId, seed) {
   if (!profile) throw new Error(`unknown profile ${profileId}`);
   const rng = makeRng(seed);
   const progression = pickFrom(rng, profile.progressions);
-  const state = { profile, rng, progression, barCount: 0, prevTop: 72 };
+  const state = {
+    profile, rng, progression,
+    barCount: 0, prevTop: 72,
+    leadDir: rng.chance(0.5) ? 1 : -1,
+    leadBankIdx: null,
+  };
 
   return { profile, bpm: profile.bpm, nextBar: () => genBar(state) };
 }
@@ -660,15 +679,29 @@ function pickFrom(rng, arr) {
 }
 
 function genBar(state) {
-  const { profile, rng, progression } = state;
+  const { profile, rng } = state;
   const beatSec = 60 / profile.bpm;
   const stepSec = beatSec / 4;        // 16th
   const barSec = beatSec * 4;
   const bar = state.barCount++;
 
+  // Rotate through the profile's progressions at each full cycle boundary
+  // so a session doesn't lock onto one progression forever.
+  const cycleLen = state.progression.length * profile.barsPerChord;
+  if (bar > 0 && bar % cycleLen === 0 && profile.progressions.length > 1) {
+    let next = state.progression;
+    for (let i = 0; i < 4 && next === state.progression; i++) {
+      next = pickFrom(rng, profile.progressions);
+    }
+    state.progression = next;
+  }
+  const { progression } = state;
+
   const chordIdx = Math.floor(bar / profile.barsPerChord) % progression.length;
   const deg = progression[chordIdx];
-  const chord = chordTones(profile.tonic, profile.scale, deg, profile.chordExt);
+  const chord = pruneAvoidNotes(
+    chordTones(profile.tonic, profile.scale, deg, profile.chordExt)
+  );
   const padVoicing = voiceLead(chord.map((n) => n + 12), state.prevTop);
   state.prevTop = padVoicing[padVoicing.length - 1];
 
@@ -699,26 +732,38 @@ function genBar(state) {
 
   // ---- bass ----
   switch (profile.bassStyle) {
-    case 'driving':   // 4 quarter notes
+    case 'driving':   // 4 quarter notes, with occasional octave lift on beat 4
       for (let b = 0; b < 4; b++) {
+        const oct = (b === 3 && rng.chance(0.18)) ? 12 : 0;
+        const amp = 0.4 + rng.float() * 0.06;
         events.push({ time: b * beatSec, def: 'bass',
-          args: { freq: midiToHz(rootMidi), amp: 0.42, dur: beatSec * 0.85, cutoff: 220 } });
+          args: { freq: midiToHz(rootMidi + oct), amp, dur: beatSec * 0.85, cutoff: 220 } });
       }
       break;
-    case 'rootSparse':  // beats 1 & 3
+    case 'rootSparse':  // beats 1 & 3, occasional extra ghost on "and of 4"
       for (const b of [0, 2]) {
         events.push({ time: b * beatSec, def: 'bass',
           args: { freq: midiToHz(rootMidi), amp: 0.42, dur: beatSec * 1.6, cutoff: 200 } });
       }
-      break;
-    case 'rootGroove':  // syncopated
-      const groove = [0, 1.5, 2, 3.5];
-      for (const b of groove) {
-        events.push({ time: b * beatSec, def: 'bass',
-          args: { freq: midiToHz(rootMidi + (rng.chance(0.2) ? 7 : 0)),
-                  amp: 0.42, dur: beatSec * 0.6, cutoff: 240 } });
+      if (rng.chance(0.15)) {
+        events.push({ time: 3.5 * beatSec, def: 'bass',
+          args: { freq: midiToHz(rootMidi), amp: 0.28, dur: beatSec * 0.4, cutoff: 200 } });
       }
       break;
+    case 'rootGroove': {  // syncopated with rests + chord-tone passing notes
+      const groove = [0, 1.5, 2, 3.5];
+      // Use the chord's actual 5th (always in-scale since the chord is built
+      // from scale degrees). Falls back to unison for power-chord-ish chords.
+      const fifthInterval = chord.length >= 3 ? (chord[2] - chord[0]) : 0;
+      for (const b of groove) {
+        if (rng.chance(0.08)) continue; // occasional rest for groove breath
+        const interval = rng.chance(0.2) ? fifthInterval : (rng.chance(0.08) ? 12 : 0);
+        events.push({ time: b * beatSec, def: 'bass',
+          args: { freq: midiToHz(rootMidi + interval),
+                  amp: 0.38 + rng.float() * 0.08, dur: beatSec * 0.6, cutoff: 240 } });
+      }
+      break;
+    }
     case 'walk':  // walking bass — root, 3rd, 5th, leading note
       const interval3 = chord[1] - chord[0];
       const targets = [
@@ -744,46 +789,119 @@ function genBar(state) {
   }
 
   // ---- drums ----
+  // Humanized velocity + micro-timing jitter on cymbals, and a light fill on
+  // the last bar of every 4-bar phrase so the pattern breathes.
   if (profile.drumPattern) {
+    const fillBar = (bar % 4 === 3);
     for (const [role, pattern] of Object.entries(profile.drumPattern)) {
       for (let s = 0; s < pattern.length; s++) {
-        const v = pattern[s];
+        let v = pattern[s];
+        // Fill: inject ghost snare/clap at steps 14–15 and a surprise kick on 16.
+        if (fillBar && !v) {
+          if (role === 'snare' && (s === 14 || s === 15) && rng.chance(0.7)) v = 0.55;
+          else if (role === 'clap' && s === 14 && rng.chance(0.5)) v = 0.6;
+          else if (role === 'kick' && s === 15 && rng.chance(0.35)) v = 0.7;
+          else if (role === 'hat' && s === 15 && rng.chance(0.5)) v = 0.6;
+        }
         if (!v) continue;
+        // Subtle velocity humanization (±8%).
+        v *= 0.92 + rng.float() * 0.16;
         const swing = (s % 2 === 1) ? profile.swing * stepSec : 0;
-        const t = s * stepSec + swing;
+        // Timing jitter — cymbals push/pull slightly, kicks stay tight.
+        const jitter = (role === 'hat' || role === 'ride')
+          ? (rng.float() - 0.5) * 0.012
+          : (role === 'snare' || role === 'clap' || role === 'rim')
+            ? (rng.float() - 0.5) * 0.006
+            : 0;
+        const t = Math.max(0, s * stepSec + swing + jitter);
         events.push(buildDrumEvent(role, t, v, rng));
       }
     }
   }
 
   // ---- lead ----
+  // Every lead note is guaranteed in-scale. The line walks by SCALE index
+  // (not semitones) and lands on a core chord tone at the start of each beat,
+  // which gives proper phrasing instead of random pitch spray.
   if (profile.leadDensity > 0) {
-    let direction = rng.chance(0.5) ? 1 : -1;
-    let lastNote = null;
-    for (let step = 0; step < 16; step++) {
-      if (rng.chance(profile.leadDensity / 2.5)) {
-        const candidates = [...chord, ...chord.map((n) => n + 12), ...chord.map((n) => n - 12)];
-        let note = candidates[Math.floor(rng.float() * candidates.length)] + 12;
-        if (lastNote !== null) {
-          if (Math.abs(note - lastNote) > 7 && rng.chance(0.7)) {
-            note = lastNote + direction * (1 + Math.floor(rng.float() * 3));
-          }
-        }
-        note = Math.max(67, Math.min(88, note));
-        lastNote = note;
-        events.push({
-          time: step * stepSec,
-          def: 'lead',
-          args: {
-            freq: midiToHz(note),
-            amp: 0.18 + rng.float() * 0.08,
-            dur: stepSec * (1 + rng.int(0, 4)),
-            spark: profile.pad?.warmth ? 0.4 + rng.float() * 0.4 : 0.5,
-            pan: rng.range(-0.3, 0.3) + 0.15,
-          },
-        });
-      }
+    const scaleArr = SCALES[profile.scale];
+    const LEAD_LO = 67, LEAD_HI = 88;
+    const bank = [];
+    for (let m = LEAD_LO; m <= LEAD_HI; m++) {
+      const pc = ((m - profile.tonic) % 12 + 12) % 12;
+      if (scaleArr.includes(pc)) bank.push(m);
     }
+    // Core chord = root/3/5/7 only (ignore extensions for melodic targets).
+    const corePcs = new Set(
+      chord.slice(0, 4).map((n) => ((n - profile.tonic) % 12 + 12) % 12)
+    );
+    const chordBankIdxs = [];
+    for (let i = 0; i < bank.length; i++) {
+      const pc = ((bank[i] - profile.tonic) % 12 + 12) % 12;
+      if (corePcs.has(pc)) chordBankIdxs.push(i);
+    }
+
+    // Pick which 16th steps fire, weighting strong beats so the phrase feels
+    // like a melody, not a cloud. Weighted sampling without replacement.
+    const stepWeights = [4,1,2,1, 3,1,2,1, 4,1,2,1, 3,1,2,2];
+    const noteCount = Math.max(1, Math.round(profile.leadDensity * 7));
+    const pool = stepWeights.map((w, s) => ({ w, s }));
+    const firing = [];
+    for (let k = 0; k < noteCount && pool.length; k++) {
+      const total = pool.reduce((a, b) => a + b.w, 0);
+      let r = rng.float() * total;
+      let i = 0;
+      for (; i < pool.length - 1; i++) {
+        r -= pool[i].w;
+        if (r <= 0) break;
+      }
+      firing.push(pool[i].s);
+      pool.splice(i, 1);
+    }
+    firing.sort((a, b) => a - b);
+
+    // Persist walk state across bars so phrases connect naturally.
+    if (state.leadBankIdx == null || state.leadBankIdx >= bank.length) {
+      state.leadBankIdx = chordBankIdxs.length
+        ? chordBankIdxs[Math.floor(rng.float() * chordBankIdxs.length)]
+        : Math.floor(bank.length / 2);
+    }
+    let bankIdx = state.leadBankIdx;
+    let dir = state.leadDir;
+
+    for (const step of firing) {
+      const onBeat = step % 4 === 0;
+      if (onBeat && chordBankIdxs.length) {
+        // Snap to the nearest chord tone to land the beat.
+        let best = chordBankIdxs[0], bestD = Infinity;
+        for (const ci of chordBankIdxs) {
+          const d = Math.abs(ci - bankIdx);
+          if (d < bestD) { bestD = d; best = ci; }
+        }
+        bankIdx = best;
+      } else {
+        const leap = rng.chance(0.15);
+        const size = leap ? rng.int(2, 4) : rng.int(1, 2);
+        bankIdx += dir * size;
+        if (bankIdx < 1) { bankIdx = 1; dir = 1; }
+        else if (bankIdx > bank.length - 2) { bankIdx = bank.length - 2; dir = -1; }
+        else if (rng.chance(0.12)) dir = -dir;
+      }
+      const note = bank[Math.max(0, Math.min(bank.length - 1, bankIdx))];
+      events.push({
+        time: step * stepSec,
+        def: 'lead',
+        args: {
+          freq: midiToHz(note),
+          amp: 0.17 + rng.float() * 0.08,
+          dur: stepSec * (1 + rng.int(0, 3)),
+          spark: profile.pad?.warmth ? 0.4 + rng.float() * 0.4 : 0.5,
+          pan: rng.range(-0.3, 0.3),
+        },
+      });
+    }
+    state.leadBankIdx = bankIdx;
+    state.leadDir = dir;
   }
 
   // ---- shimmer (Poisson sprinkle) ----
@@ -792,8 +910,10 @@ function genBar(state) {
   if (profile.shimmerRate > 0 && rng.chance(0.45)) {
     const grainCount = Math.max(1, Math.round(profile.shimmerRate * 0.4));
     for (let g = 0; g < grainCount; g++) {
+      // Octave-only offsets keep the shimmer strictly in-scale. (The old +19
+      // = P5+octave sometimes fell outside the mode, e.g. dorian 2nd + P5.)
       const n = chord[Math.floor(rng.float() * chord.length)]
-              + [12, 19, 24][Math.floor(rng.float() * 3)];
+              + [12, 24, 24][Math.floor(rng.float() * 3)];
       events.push({
         time: rng.range(0, barSec),
         def: 'shimmer',
