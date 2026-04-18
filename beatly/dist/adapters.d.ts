@@ -2,11 +2,18 @@ import type { BeatlyPlaybackDirective } from "./index.js";
 import type { BeatlyGenreId } from "./genres.js";
 export interface SuperColliderServerState {
     readonly profile: string;
+    readonly genre?: string;
+    readonly variant?: string;
     readonly seed: number;
     readonly bpm: number | null;
     readonly bar: number;
     readonly running: boolean;
     readonly profiles: readonly string[];
+    readonly genres?: readonly {
+        readonly id: string;
+        readonly defaultVariant: string;
+        readonly variants: readonly string[];
+    }[];
     readonly lastAgentEvent?: string | null;
 }
 export interface SuperColliderAgentEventPayload {
@@ -37,6 +44,8 @@ export declare class SuperColliderHelloAdapter {
     startServer(): Promise<void>;
     getState(): Promise<SuperColliderServerState>;
     setProfile(profile: BeatlyGenreId, seed?: number): Promise<SuperColliderServerState>;
+    setGenre(genre: BeatlyGenreId, variant?: string, seed?: number): Promise<SuperColliderServerState>;
+    setVariant(variant: string): Promise<SuperColliderServerState>;
     setRunning(running: boolean): Promise<SuperColliderServerState>;
     randomize(): Promise<SuperColliderServerState>;
     applyDirective(directive: BeatlyPlaybackDirective): Promise<SuperColliderServerState>;

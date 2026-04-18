@@ -57,6 +57,12 @@ export class SuperColliderHelloAdapter {
     async setProfile(profile, seed) {
         return this.postControl({ profile, seed });
     }
+    async setGenre(genre, variant, seed) {
+        return this.postControl({ genre, variant, seed });
+    }
+    async setVariant(variant) {
+        return this.postControl({ variant });
+    }
     async setRunning(running) {
         return this.postControl({ running });
     }
@@ -64,8 +70,9 @@ export class SuperColliderHelloAdapter {
         return this.postControl({ randomize: true });
     }
     async applyDirective(directive) {
+        const profile = directive.variant ? `${directive.genre}.${directive.variant}` : directive.genre;
         return this.postControl({
-            profile: directive.genre,
+            profile,
             seed: directive.seed,
             running: directive.running,
         });

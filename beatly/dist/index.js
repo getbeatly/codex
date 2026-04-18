@@ -1,5 +1,5 @@
 import { BEATLY_GENRES, DEFAULT_GENRE } from "./genres.js";
-export { BEATLY_GENRES, DEFAULT_GENRE, getGenre } from "./genres.js";
+export { BEATLY_GENRES, DEFAULT_GENRE, getGenre, getVariant, resolveProfileId } from "./genres.js";
 export { ConsoleDirectiveAdapter, SuperColliderHelloAdapter } from "./adapters.js";
 export class BeatlyConductor {
     adapters = new Set();
@@ -21,11 +21,13 @@ export class BeatlyConductor {
         if (this.session !== null) {
             throw new Error("Beatly session already active.");
         }
+        const initialGenre = options.initialGenre ?? DEFAULT_GENRE;
         const session = {
             sessionId: options.sessionId ?? generateSessionId(),
             agentId: options.agentId,
             startedAt: new Date(),
-            genre: options.initialGenre ?? DEFAULT_GENRE,
+            genre: initialGenre,
+            variant: pickVariant(initialGenre, options.initialVariant),
             intensity: clamp01(options.initialIntensity ?? 0.5),
             seed: this.seedFactory(),
             running: options.running ?? true,
@@ -33,11 +35,12 @@ export class BeatlyConductor {
         this.session = session;
         await this.dispatch({
             genre: session.genre,
+            variant: session.variant,
             intensity: session.intensity,
             seed: session.seed,
             running: session.running,
             reason: "session.started",
-            summary: `Start ${session.genre} at intensity ${session.intensity.toFixed(2)}`,
+            summary: `Start ${session.genre}.${session.variant} at intensity ${session.intensity.toFixed(2)}`,
             timestamp: new Date(),
         });
         return session;
@@ -47,8 +50,14 @@ export class BeatlyConductor {
             throw new Error("No active Beatly session.");
         }
         const recommendation = recommendPlayback(signal);
+        // Preserve current variant when recommending inside the same genre;
+        // otherwise fall back to the target genre's default variant.
+        const nextVariant = recommendation.genre.id === this.session.genre
+            ? this.session.variant
+            : recommendation.genre.defaultVariant;
         const nextDirective = {
             genre: recommendation.genre.id,
+            variant: nextVariant,
             intensity: recommendation.intensity,
             seed: this.session.seed,
             running: true,
@@ -59,6 +68,7 @@ export class BeatlyConductor {
         this.session = {
             ...this.session,
             genre: nextDirective.genre,
+            variant: nextDirective.variant,
             intensity: nextDirective.intensity,
             running: nextDirective.running,
         };
@@ -69,8 +79,13 @@ export class BeatlyConductor {
         if (this.session === null) {
             throw new Error("No active Beatly session.");
         }
+        const nextGenre = override.genre ?? this.session.genre;
+        const nextVariant = nextGenre === this.session.genre
+            ? pickVariant(nextGenre, override.variant ?? this.session.variant)
+            : pickVariant(nextGenre, override.variant);
         const directive = {
-            genre: override.genre ?? this.session.genre,
+            genre: nextGenre,
+            variant: nextVariant,
             intensity: clamp01(override.intensity ?? this.session.intensity),
             seed: override.seed ?? this.session.seed,
             running: override.running ?? this.session.running,
@@ -81,6 +96,7 @@ export class BeatlyConductor {
         this.session = {
             ...this.session,
             genre: directive.genre,
+            variant: directive.variant,
             intensity: directive.intensity,
             seed: directive.seed,
             running: directive.running,
@@ -94,6 +110,7 @@ export class BeatlyConductor {
         }
         const directive = {
             genre: this.session.genre,
+            variant: this.session.variant,
             intensity: this.session.intensity,
             seed: this.session.seed,
             running: false,
@@ -177,11 +194,18 @@ function genreById(id) {
 function generateSessionId() {
     return `beatly_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
+function pickVariant(genreId, requested) {
+    const genre = genreById(genreId);
+    if (requested && genre.variants.some((entry) => entry.id === requested)) {
+        return requested;
+    }
+    return genre.defaultVariant;
+}
 function clamp01(value) {
     if (Number.isNaN(value)) {
         return 0;
     }
     return Math.max(0, Math.min(1, value));
 }
-export const BEATLY_CORE_VERSION = "0.2.0";
+export const BEATLY_CORE_VERSION = "0.3.0";
 //# sourceMappingURL=index.js.map

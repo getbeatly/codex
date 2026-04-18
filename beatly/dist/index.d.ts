@@ -1,5 +1,5 @@
 import { type BeatlyGenre, type BeatlyGenreId } from "./genres.js";
-export { BEATLY_GENRES, DEFAULT_GENRE, getGenre, type BeatlyGenre, type BeatlyGenreId } from "./genres.js";
+export { BEATLY_GENRES, DEFAULT_GENRE, getGenre, getVariant, resolveProfileId, type BeatlyGenre, type BeatlyGenreId, type BeatlyVariant } from "./genres.js";
 export { ConsoleDirectiveAdapter, SuperColliderHelloAdapter, type SuperColliderHelloAdapterOptions, type SuperColliderServerState } from "./adapters.js";
 export interface BeatlyAgentSignal {
     readonly focus: number;
@@ -12,12 +12,14 @@ export interface BeatlySession {
     readonly agentId: string;
     readonly startedAt: Date;
     readonly genre: BeatlyGenreId;
+    readonly variant: string;
     readonly intensity: number;
     readonly seed: number;
     readonly running: boolean;
 }
 export interface BeatlyPlaybackDirective {
     readonly genre: BeatlyGenreId;
+    readonly variant: string;
     readonly intensity: number;
     readonly seed: number;
     readonly running: boolean;
@@ -27,6 +29,7 @@ export interface BeatlyPlaybackDirective {
 }
 export interface BeatlyPlaybackOverride {
     readonly genre?: BeatlyGenreId;
+    readonly variant?: string;
     readonly intensity?: number;
     readonly seed?: number;
     readonly running?: boolean;
@@ -46,6 +49,7 @@ export interface StartSessionOptions {
     readonly agentId: string;
     readonly sessionId?: string;
     readonly initialGenre?: BeatlyGenreId;
+    readonly initialVariant?: string;
     readonly initialIntensity?: number;
     readonly running?: boolean;
 }
@@ -68,5 +72,5 @@ export declare class BeatlyConductor {
     private dispatch;
 }
 export declare function recommendPlayback(signal: BeatlyAgentSignal): BeatlyRecommendation;
-export declare const BEATLY_CORE_VERSION: "0.2.0";
+export declare const BEATLY_CORE_VERSION: "0.3.0";
 //# sourceMappingURL=index.d.ts.map
