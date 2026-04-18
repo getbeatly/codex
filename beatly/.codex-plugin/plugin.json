@@ -1,7 +1,7 @@
 {
   "name": "beatly",
-  "version": "0.6.3",
-  "description": "Live soundtrack controls for coding agents. Requires system-wide SuperCollider.",
+  "version": "0.6.4",
+  "description": "A procedurally generated soundtrack, composed live while your coding agent works. Every note is synthesized in real time and scored to what the agent is doing right now. Requires system-wide SuperCollider.",
   "author": {
     "name": "Beatly",
     "url": "https://beatly.dev"
@@ -19,8 +19,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Beatly",
-    "shortDescription": "Live soundtrack controls for coding agents",
-    "longDescription": "Control Beatly playback, agent-reactive soundtrack updates, and the local jukebox from Codex. Requires system-wide SuperCollider with scsynth and sclang on PATH.",
+    "shortDescription": "Procedurally generated music, composed live while your agent codes",
+    "longDescription": "Beatly procedurally generates a soundtrack for your coding agent in real time. A local SuperCollider engine synthesizes every note on the fly, and the agent steers the composition so the music matches what is actually happening in the task right now — tool calls, diffs, tests going green, blockers, breakthroughs. Not a playlist. The music is the agent's run. Requires system-wide SuperCollider with scsynth and sclang on PATH.",
     "developerName": "Beatly",
     "category": "Productivity",
     "capabilities": [

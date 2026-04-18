@@ -2,7 +2,7 @@
   "name": "beatly-marketplace",
   "interface": {
     "displayName": "Beatly Plugins",
-    "shortDescription": "Live soundtrack controls for coding agents"
+    "shortDescription": "Procedurally generated soundtrack, composed live while your coding agent works"
   },
   "plugins": [
     {
