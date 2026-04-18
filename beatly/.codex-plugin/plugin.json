@@ -1,6 +1,6 @@
 {
   "name": "beatly",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "description": "Live soundtrack controls for coding agents. Requires system-wide SuperCollider.",
   "author": {
     "name": "Beatly",

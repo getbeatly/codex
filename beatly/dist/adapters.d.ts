@@ -28,6 +28,12 @@ export interface SuperColliderHelloAdapterOptions {
     readonly spawnCommand?: string;
     readonly spawnArgs?: readonly string[];
     readonly startupTimeoutMs?: number;
+    /**
+     * Spawn the server detached from the parent process so short-lived one-shot
+     * drivers (e.g. the Codex/Claude Code skill wrappers) can exit without
+     * killing the Beatly daemon. Defaults to true.
+     */
+    readonly detached?: boolean;
 }
 export declare class SuperColliderHelloAdapter {
     readonly id = "beatly-supercollider";
@@ -38,6 +44,7 @@ export declare class SuperColliderHelloAdapter {
     private readonly spawnCommand;
     private readonly spawnArgs;
     private readonly startupTimeoutMs;
+    private readonly detached;
     private child;
     constructor(options?: SuperColliderHelloAdapterOptions);
     ensureReady(): Promise<SuperColliderServerState>;

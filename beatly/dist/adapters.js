@@ -11,6 +11,7 @@ export class SuperColliderHelloAdapter {
     spawnCommand;
     spawnArgs;
     startupTimeoutMs;
+    detached;
     child = null;
     constructor(options = {}) {
         this.baseUrl = options.baseUrl ?? "http://127.0.0.1:8080";
@@ -20,6 +21,7 @@ export class SuperColliderHelloAdapter {
         this.spawnCommand = options.spawnCommand ?? "node";
         this.spawnArgs = options.spawnArgs ?? [this.serverScript];
         this.startupTimeoutMs = options.startupTimeoutMs ?? 15_000;
+        this.detached = options.detached ?? true;
     }
     async ensureReady() {
         try {
@@ -38,6 +40,23 @@ export class SuperColliderHelloAdapter {
             return;
         }
         await access(resolve(this.serverCwd, this.serverScript), fsConstants.R_OK);
+        if (this.detached) {
+            // Daemon mode: spawn fully detached with no shared stdio, then release
+            // the handle so the parent (e.g. a one-shot skill driver) can exit
+            // without tearing the Beatly server down via SIGPIPE / fd close.
+            const child = spawn(this.spawnCommand, [...this.spawnArgs], {
+                cwd: this.serverCwd,
+                env: process.env,
+                detached: true,
+                stdio: "ignore",
+            });
+            child.unref();
+            // We intentionally drop the handle — ownership transfers to the OS.
+            // stopServer() becomes a no-op in detached mode; use the HTTP
+            // `session.stop` agent event / the dashboard to stop playback.
+            this.child = null;
+            return;
+        }
         this.child = spawn(this.spawnCommand, [...this.spawnArgs], {
             cwd: this.serverCwd,
             stdio: "inherit",
