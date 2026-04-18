@@ -1,7 +1,8 @@
 {
-  "name": "beatly",
+  "name": "beatly-marketplace",
   "interface": {
-    "displayName": "Beatly"
+    "displayName": "Beatly Plugins",
+    "shortDescription": "Live soundtrack controls for coding agents"
   },
   "plugins": [
     {
